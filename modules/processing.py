@@ -13,6 +13,7 @@ import json
 import os
 from typing import Callable, List, Optional, Tuple
 from crop_model_patch import crop_model_cond
+from modules.tile_color import match_tile_color, TILE_COLOR_MATCH_METHODS
 
 logger = logging.getLogger(__name__)
 
@@ -69,41 +70,6 @@ def _save_live_preview(image, crop_region=None):
             )
     except Exception as e:
         logger.warning(f"USDU live preview save failed: {e}")
-
-
-# Per-tile color/brightness match -------------------------------------------
-# Each redrawn tile is denoised independently, so tiles drift apart in
-# brightness and color. Before a tile is composited back we match its color
-# distribution to the SAME region of the (pre-redraw) upscaled canvas, which is
-# globally consistent. This removes tile-to-tile drift at the source instead of
-# trying to average it out after stitching, and leaves the tile's new spatial
-# detail untouched. Backed by the color-matcher library (the same one behind
-# KJNodes' ColorMatch node).
-TILE_COLOR_MATCH_METHODS = ["off", "mkl", "reinhard", "hm", "mvgd", "hm-mkl-hm", "hm-mvgd-hm"]
-
-
-def match_tile_color(tile, ref, method="mkl", strength=1.0):
-    """Return *tile* (PIL) re-graded so its color distribution matches *ref* (PIL).
-
-    method: one of TILE_COLOR_MATCH_METHODS; "off" disables.
-    strength: 0..1 blend between the original tile and the fully matched result.
-    Falls back to the original tile on any error so a redraw is never lost.
-    """
-    if method == "off" or strength <= 0:
-        return tile
-    try:
-        import numpy as np
-        from color_matcher import ColorMatcher
-        tile_np = np.asarray(tile.convert("RGB"), dtype=np.float32) / 255.0
-        ref_np = np.asarray(ref.convert("RGB"), dtype=np.float32) / 255.0
-        result = ColorMatcher().transfer(src=tile_np, ref=ref_np, method=method)
-        if strength != 1.0:
-            result = tile_np + strength * (result - tile_np)
-        result = np.clip(result * 255.0 + 0.5, 0, 255).astype(np.uint8)
-        return Image.fromarray(result, mode="RGB")
-    except Exception as e:
-        logger.warning(f"USDU tile color match failed (method={method}): {e}")
-        return tile
 
 
 # Taken from the USDU script

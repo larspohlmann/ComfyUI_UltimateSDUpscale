@@ -15,8 +15,11 @@ test = [
 ]
 
 [project.urls]
-Repository = "https://github.com/ssitu/ComfyUI_UltimateSDUpscale"
+Repository = "https://github.com/larspohlmann/ComfyUI_UltimateSDUpscale"
+Upstream = "https://github.com/ssitu/ComfyUI_UltimateSDUpscale"
 #  Used by Comfy Registry https://comfyregistry.org
+#  This is a fork; PublisherId/name below are left as upstream's since this fork
+#  is distributed via GitHub, not published to the Comfy Registry.
 
 [tool.comfy]
 PublisherId = "ssit"
