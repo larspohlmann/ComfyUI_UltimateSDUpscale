@@ -22,17 +22,11 @@ if (not hasattr(Image, 'Resampling')):  # For older versions of Pillow
 
 
 # Dumps the working canvas to <ComfyUI temp>/usdu_live.png after each tile is
-# pasted, so the stitch progress can be watched in real time. The canvas starts
-# as the pre-upscaled image, so individual tile composites are visually subtle —
-# we overlay a colored rectangle on the just-completed tile (and faded outlines
-# on previously-completed tiles) so the progress is visible at a glance.
+# pasted, so the stitch progress can be watched in real time.
 #
 # Set USDU_LIVE_PREVIEW=numbered to additionally keep snapshots usdu_live_0001.png ...
 # Set USDU_LIVE_PREVIEW=off to disable entirely.
-# Set USDU_LIVE_PREVIEW=plain to skip the overlay and save the raw canvas.
 _usdu_live_counter = 0
-_usdu_live_done_regions = []  # list of (x1, y1, x2, y2) for completed tiles
-_usdu_live_canvas_size = None  # reset history when canvas size changes
 
 def _save_live_preview(image, crop_region=None):
     mode = os.environ.get("USDU_LIVE_PREVIEW", "")
@@ -43,28 +37,11 @@ def _save_live_preview(image, crop_region=None):
         out_dir = folder_paths.get_temp_directory()
         os.makedirs(out_dir, exist_ok=True)
 
-        global _usdu_live_done_regions, _usdu_live_canvas_size
-        if _usdu_live_canvas_size != image.size:
-            _usdu_live_done_regions = []
-            _usdu_live_canvas_size = image.size
-
-        if mode == "plain" or crop_region is None:
-            preview = image
-        else:
-            preview = image.copy()
-            draw = ImageDraw.Draw(preview, "RGBA")
-            # Older completed tiles: faint yellow outline
-            for prev in _usdu_live_done_regions:
-                draw.rectangle(prev, outline=(255, 220, 0, 140), width=2)
-            # Current tile: solid red outline, thicker
-            draw.rectangle(crop_region, outline=(255, 40, 40, 255), width=6)
-            _usdu_live_done_regions.append(tuple(crop_region))
-
-        preview.save(os.path.join(out_dir, "usdu_live.png"), compress_level=1)
+        image.save(os.path.join(out_dir, "usdu_live.png"), compress_level=1)
         if mode == "numbered":
             global _usdu_live_counter
             _usdu_live_counter += 1
-            preview.save(
+            image.save(
                 os.path.join(out_dir, f"usdu_live_{_usdu_live_counter:04d}.png"),
                 compress_level=1,
             )
