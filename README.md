@@ -22,7 +22,7 @@
 >
 > Writes the working canvas to `<ComfyUI temp>/usdu_live.png` after each tile is pasted, with the just-finished tile outlined, so the stitch can be watched in real time. Controlled by the `USDU_LIVE_PREVIEW` environment variable: unset/default draws the progress overlay, `plain` saves the raw canvas, `numbered` also keeps `usdu_live_0001.png …` snapshots, and `off` disables it.
 >
-> **Installing this fork:** clone `https://github.com/larspohlmann/ComfyUI_UltimateSDUpscale` (instead of the upstream URL below), then `pip install -r requirements.txt`.
+> **Installing this fork:** clone `https://github.com/larspohlmann/ComfyUI_UltimateSDUpscale_TileColorMatch` (instead of the upstream URL below), then `pip install -r requirements.txt`. Place it in `ComfyUI/custom_nodes/` (any folder name works).
 >
 > **Tests:** the color-match logic has standalone unit tests that need no models or GPU — `pip install pytest && python -m pytest tests_unit/`. (The model-based integration suite under `test/` is inherited from upstream.)
 
