@@ -6,7 +6,7 @@ import torch
 import comfy
 from usdu_patch import usdu
 from usdu_utils import tensor_to_pil, pil_to_tensor
-from modules.processing import StableDiffusionProcessing
+from modules.processing import StableDiffusionProcessing, TILE_COLOR_MATCH_METHODS
 import modules.shared as shared
 from modules.upscaler import UpscalerData
 
@@ -74,7 +74,10 @@ def USDU_base_inputs():
         ("batch_size", ("INT", {"default": 1, "min": 1, "max": 4096, "step": 1, "tooltip": "The number of tiles to process in a batch. Higher values can reduce processing time but use more VRAM. Yields different results than individual tiles. Only affects the main redraw step, not the seam fix step."})),
     ]
 
-    optional = []
+    optional = [
+        ("tile_color_match", (TILE_COLOR_MATCH_METHODS, {"default": "off", "tooltip": "Match each redrawn tile's color/brightness to the same region of the upscaled source before stitching, removing tile-to-tile drift. 'off' disables. 'mkl' matches mean + covariance (brightness, contrast, color cast); 'hm-mkl-hm' also matches the tonal histogram for the closest match."})),
+        ("tile_color_match_strength", ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "Blend between the original redrawn tile (0.0) and the fully color-matched tile (1.0)."})),
+    ]
 
     return required, optional
 
@@ -124,7 +127,8 @@ class UltimateSDUpscale:
                 mode_type, tile_width, tile_height, mask_blur, tile_padding,
                 seam_fix_mode, seam_fix_denoise, seam_fix_mask_blur,
                 seam_fix_width, seam_fix_padding, force_uniform_tiles, tiled_decode, batch_size=1,
-                custom_sampler=None, custom_sigmas=None):
+                custom_sampler=None, custom_sigmas=None,
+                tile_color_match="off", tile_color_match_strength=1.0):
         redraw_mode = MODES[mode_type]
         seam_fix_mode = SEAM_FIX_MODES[seam_fix_mode]
 
@@ -151,6 +155,7 @@ class UltimateSDUpscale:
             seed, steps, cfg, sampler_name, scheduler, denoise, upscale_by, force_uniform_tiles, tiled_decode,
             tile_width, tile_height, redraw_mode, seam_fix_mode,
             custom_sampler, custom_sigmas, batch_size,
+            tile_color_match=tile_color_match, tile_color_match_strength=tile_color_match_strength,
         )
         logger.debug("StableDiffusionProcessing created with batch_size=%s", sdprocessing.batch_size)
 
@@ -192,7 +197,8 @@ class UltimateSDUpscaleNoUpscale(UltimateSDUpscale):
                 steps, cfg, sampler_name, scheduler, denoise,
                 mode_type, tile_width, tile_height, mask_blur, tile_padding,
                 seam_fix_mode, seam_fix_denoise, seam_fix_mask_blur,
-                seam_fix_width, seam_fix_padding, force_uniform_tiles, tiled_decode, batch_size=1):
+                seam_fix_width, seam_fix_padding, force_uniform_tiles, tiled_decode, batch_size=1,
+                tile_color_match="off", tile_color_match_strength=1.0):
         upscale_by = 1.0
 
         logger.debug("UltimateSDUpscaleNoUpscale.upscale() received batch_size=%s", batch_size)
@@ -201,7 +207,8 @@ class UltimateSDUpscaleNoUpscale(UltimateSDUpscale):
                                steps, cfg, sampler_name, scheduler, denoise, None,
                                mode_type, tile_width, tile_height, mask_blur, tile_padding,
                                seam_fix_mode, seam_fix_denoise, seam_fix_mask_blur,
-                               seam_fix_width, seam_fix_padding, force_uniform_tiles, tiled_decode, batch_size)
+                               seam_fix_width, seam_fix_padding, force_uniform_tiles, tiled_decode, batch_size,
+                               tile_color_match=tile_color_match, tile_color_match_strength=tile_color_match_strength)
     
 class UltimateSDUpscaleCustomSample(UltimateSDUpscale):
     @classmethod
@@ -225,13 +232,15 @@ class UltimateSDUpscaleCustomSample(UltimateSDUpscale):
                 seam_fix_mode, seam_fix_denoise, seam_fix_mask_blur,
                 seam_fix_width, seam_fix_padding, force_uniform_tiles, tiled_decode, batch_size=1,
                 upscale_model=None,
-                custom_sampler=None, custom_sigmas=None):
+                custom_sampler=None, custom_sigmas=None,
+                tile_color_match="off", tile_color_match_strength=1.0):
         return super().upscale(image, model, positive, negative, vae, upscale_by, seed,
                 steps, cfg, sampler_name, scheduler, denoise, upscale_model,
                 mode_type, tile_width, tile_height, mask_blur, tile_padding,
                 seam_fix_mode, seam_fix_denoise, seam_fix_mask_blur,
                 seam_fix_width, seam_fix_padding, force_uniform_tiles, tiled_decode, batch_size,
-                custom_sampler, custom_sigmas)
+                custom_sampler, custom_sigmas,
+                tile_color_match=tile_color_match, tile_color_match_strength=tile_color_match_strength)
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
