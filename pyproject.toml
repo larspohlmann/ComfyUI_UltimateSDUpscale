@@ -3,6 +3,10 @@ name = "comfyui_ultimatesdupscale"
 description = "ComfyUI nodes for the Ultimate Stable Diffusion Upscale script by Coyote-A."
 version = "1.7.2"
 license = { file = "LICENSE" }
+dependencies = [
+    # Per-tile color/brightness match (tile_color_match widget).
+    "color-matcher>=0.5.0",
+]
 
 [project.optional-dependencies]
 test = [

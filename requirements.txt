@@ -1,0 +1,4 @@
+# Runtime dependency for the per-tile color/brightness match feature
+# (tile_color_match widget). Provides the MKL / Reinhard / histogram color
+# transfer used in modules/processing.py::match_tile_color.
+color-matcher>=0.5.0
